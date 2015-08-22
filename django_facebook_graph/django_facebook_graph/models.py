@@ -2,12 +2,13 @@ __author__ = 'indrajit'
 
 import importlib
 
-from facebook_graph import SocialGraph
-from relations import Friends
+from facebook_graph import SocialGraph, get_user_model
 
 from django.db import models
 from django.contrib.auth.models import User
 from django.conf import settings
+
+user_model = get_user_model()
 
 class BaseMapper(object):
     """
@@ -67,9 +68,6 @@ class BaseMapper(object):
 
 class FacebookGraphUser(BaseMapper):
     _graph = SocialGraph().g
-    path = settings.FACEBOOK_USER_MODEL
-    module_name, class_name = path.rsplit(".", 1)
-    user_model = getattr(importlib.import_module(module_name), class_name)
 
     class Meta:
         key_field = 'uid'
@@ -97,13 +95,12 @@ class FacebookGraphUser(BaseMapper):
         return edge
 
     def get_friends(self):
-        import pdb; pdb.set_trace()
         vertices = self._vertex.outV('friends')
         friends = []
         if vertices:
             for vertex in vertices:
                 query_dict = {self.Meta.key_field: vertex.data()[self.Meta.key_field]}
-                friends.append(FacebookGraphUser(vertex, FacebookGraphUser.user_model.objects.get(**query_dict)))
+                friends.append(FacebookGraphUser(vertex, user_model.objects.get(**query_dict)))
         return friends
 
     def get_friends_with_relation(self, instance, relation):
@@ -116,7 +113,7 @@ class FacebookGraphUser(BaseMapper):
             for vertex in vertices:
                 if vertex.outV(relation.__name__.lower()):
                     query_dict = {self.Meta.key_field: vertex.data()[self.Meta.key_field]}
-                    friends.append(FacebookGraphUser(vertex, FacebookGraphUser.user_model.objects.get(**query_dict)))
+                    friends.append(FacebookGraphUser(vertex, user_model.objects.get(**query_dict)))
         return friends
 
 class Product(models.Model):

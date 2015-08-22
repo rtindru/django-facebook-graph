@@ -7,14 +7,21 @@ from django.conf import settings
 from bulbs.neo4jserver import Graph, Config, NEO4J_URI, Edge
 from facepy import GraphAPI
 
-class SocialGraph(object):
+def get_user_model():
     path = settings.FACEBOOK_USER_MODEL
     module_name, class_name = path.rsplit(".", 1)
-    user_model = getattr(importlib.import_module(module_name), class_name)
+    return getattr(importlib.import_module(module_name), class_name)
+
+def get_token_model():
+    path = settings.AUTH_TOKEN_MODEL
+    module_name, class_name = path.rsplit(".", 1)
+    token_model = getattr(importlib.import_module(module_name), class_name)
+
+class SocialGraph(object):
+    user_model = get_user_model()
 
     def __init__(self):
         db_url = 'http://{}:{}{}'.format(settings.NEO4J_DATABASES['default']['HOST'], settings.NEO4J_DATABASES['default']['PORT'], settings.NEO4J_DATABASES['default']['ENDPOINT'])
-        print db_url
         config = Config(db_url, settings.NEO4J_DATABASES['default']['USER'], settings.NEO4J_DATABASES['default']['PASSWORD'])
         self.g = Graph(config)
 
@@ -22,12 +29,9 @@ class SocialGraph(object):
         from models import FacebookGraphUser
 
         if not access_token:
-            path = settings.AUTH_TOKEN_MODEL
-            module_name, class_name = path.rsplit(".", 1)
-            token_model = getattr(importlib.import_module(module_name), class_name)
+            token_model = get_token_model()
             access_token = token_model.objects.get(account=user).token
 
-        print access_token
         user_node = FacebookGraphUser.get_or_create(user)
         graph = GraphAPI(access_token)
         friends = graph.get('me/friends/')
@@ -37,6 +41,5 @@ class SocialGraph(object):
             self.add_friend(user_node, friend_node)
 
     def add_friend(self, userA, userB):
-        from relations import Friends
         if userA.is_friend(userB) is None:
-            Friends.relate(userA, userB, bi_directed=True)
+            userA.relate(userB, 'friends', bi_directed=True)

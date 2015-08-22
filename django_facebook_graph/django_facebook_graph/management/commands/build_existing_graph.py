@@ -6,7 +6,7 @@ import importlib
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
-from django_facebook_graph.facebook_graph import SocialGraph
+from django_facebook_graph.facebook_graph import SocialGraph, get_user_model
 
 logger = logging.getLogger(__name__)
 
@@ -16,9 +16,7 @@ class Command(BaseCommand):
         """
         Usage: python manage.py build_existing_graph
         """
-        path = settings.FACEBOOK_USER_MODEL
-        module_name, class_name = path.rsplit(".", 1)
-        user_model = getattr(importlib.import_module(module_name), class_name)
+        user_model = get_user_model()
 
         users = user_model.objects.all()
         graph = SocialGraph()
