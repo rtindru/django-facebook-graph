@@ -6,7 +6,7 @@ from django.db.models.signals import post_save
 from django.dispatch import Signal
 from django.conf import settings
 
-from models import FacebookGraphUser
+from models import FacebookGraphUser, BaseMapper
 
 path = settings.FACEBOOK_USER_MODEL
 module_name, class_name = path.rsplit(".", 1)
@@ -21,10 +21,13 @@ new_relation_event = Signal(providing_args=['user', 'model_instance', 'relation_
 
 
 def add_new_relation(sender, **kwargs):
-    """Trap the signal and do whatever is needed"""
+    """Draw a new relation between a User and a Model Object"""
     user = kwargs['user']
+    relation = kwargs['relation']
+    social_user = user_model.objects.get(user=user)
     model_instance = kwargs['model_instance']
-    relation_instance = kwargs['relation_instance']
-    relation_instance.relate(user, model_instance)
+    user_node = FacebookGraphUser.get_or_create(social_user)
+    product_node = BaseMapper.get_or_create(model_instance)
+    user_node.relate(product_node, relation)
 
 new_relation_event.connect(add_new_relation)

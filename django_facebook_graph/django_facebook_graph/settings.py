@@ -195,7 +195,6 @@ INSTALLED_APPS = (
     'django_facebook_graph',
     # Uncomment the next line to enable the admin:
     'django.contrib.admin',
-    'django_facebook',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',

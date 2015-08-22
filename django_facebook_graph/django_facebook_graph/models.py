@@ -1,7 +1,13 @@
 __author__ = 'indrajit'
 
+import importlib
+
 from facebook_graph import SocialGraph
 from relations import Friends
+
+from django.db import models
+from django.contrib.auth.models import User
+from django.conf import settings
 
 class BaseMapper(object):
     """
@@ -60,10 +66,69 @@ class BaseMapper(object):
 
 
 class FacebookGraphUser(BaseMapper):
+    _graph = SocialGraph().g
+    path = settings.FACEBOOK_USER_MODEL
+    module_name, class_name = path.rsplit(".", 1)
+    user_model = getattr(importlib.import_module(module_name), class_name)
 
     class Meta:
         key_field = 'uid'
         data_fields = ['pk']
 
     def is_friend(self, user):
-        return Friends.has_relation(self, user)
+        return self.has_relation(user, 'friends')
+
+    def has_relation(self, user, relation):
+        edges = self._vertex.outE(relation)
+        if edges:
+            for edge in edges:
+                if user._vertex == edge.inV():
+                    return edge
+        return False
+
+    def relate(self, node, relation, bi_directed=False, **attrs):
+        if not FacebookGraphUser._graph:
+            FacebookGraphUser._graph = SocialGraph().g
+        edge = self.has_relation(node, relation)
+        if not edge:
+            edge = FacebookGraphUser._graph.edges.create(self._vertex, relation, node._vertex)
+        for key, value in attrs.items():
+            setattr(edge, key, value)
+        return edge
+
+    def get_friends(self):
+        import pdb; pdb.set_trace()
+        vertices = self._vertex.outV('friends')
+        friends = []
+        if vertices:
+            for vertex in vertices:
+                query_dict = {self.Meta.key_field: vertex.data()[self.Meta.key_field]}
+                friends.append(FacebookGraphUser(vertex, FacebookGraphUser.user_model.objects.get(**query_dict)))
+        return friends
+
+    def get_friends_with_relation(self, instance, relation):
+        friends = []
+        relation_node = BaseMapper.get(instance)
+        if not relation_node:
+            return friends
+        vertices = self._vertex.outV('friends')
+        if vertices:
+            for vertex in vertices:
+                if vertex.outV(relation.__name__.lower()):
+                    query_dict = {self.Meta.key_field: vertex.data()[self.Meta.key_field]}
+                    friends.append(FacebookGraphUser(vertex, FacebookGraphUser.user_model.objects.get(**query_dict)))
+        return friends
+
+class Product(models.Model):
+    name = models.CharField(max_length=100)
+
+    def __unicode__(self):
+        return self.name
+
+
+class Transaction(models.Model):
+    product = models.ForeignKey(Product)
+    user = models.ForeignKey(User)
+
+    def __unicode__(self):
+        return u'{} - {}'.format(self.product.name, self.user)
