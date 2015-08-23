@@ -15,7 +15,7 @@ def get_user_model():
 def get_token_model():
     path = settings.AUTH_TOKEN_MODEL
     module_name, class_name = path.rsplit(".", 1)
-    token_model = getattr(importlib.import_module(module_name), class_name)
+    return getattr(importlib.import_module(module_name), class_name)
 
 class SocialGraph(object):
     user_model = get_user_model()
@@ -41,5 +41,4 @@ class SocialGraph(object):
             self.add_friend(user_node, friend_node)
 
     def add_friend(self, userA, userB):
-        if userA.is_friend(userB) is None:
-            userA.relate(userB, 'friends', bi_directed=True)
+        userA.relate(userB, 'friends', bi_directed=True)

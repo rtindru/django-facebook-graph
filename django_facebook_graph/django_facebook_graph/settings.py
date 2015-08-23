@@ -41,7 +41,7 @@ DATABASE_ROUTERS = ['neo4django.utils.Neo4djangoIntegrationRouter']
 # See https://docs.djangoproject.com/en/1.4/ref/settings/#allowed-hosts
 ALLOWED_HOSTS = []
 
-# Local time zone for this installation. Choices can be found here:
+# Local time zone for this ation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 # although not all choices may be available on all operating systems.
 # In a Windows environment this must be set to your system time zone.
@@ -202,6 +202,8 @@ INSTALLED_APPS = (
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
 )
+
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = False
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.file'
 

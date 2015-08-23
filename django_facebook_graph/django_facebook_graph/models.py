@@ -90,11 +90,17 @@ class FacebookGraphUser(BaseMapper):
         edge = self.has_relation(node, relation)
         if not edge:
             edge = FacebookGraphUser._graph.edges.create(self._vertex, relation, node._vertex)
+        if bi_directed:
+            edge_2 = node.has_relation(self, relation)
+            if not edge_2:
+                edge_2 = FacebookGraphUser._graph.edges.create(node._vertex, relation, self._vertex)
         for key, value in attrs.items():
             setattr(edge, key, value)
+            if bi_directed:
+                setattr(edge_2, key, value)
         return edge
 
-    def get_friends(self):
+    def friends(self):
         vertices = self._vertex.outV('friends')
         friends = []
         if vertices:
@@ -102,6 +108,22 @@ class FacebookGraphUser(BaseMapper):
                 query_dict = {self.Meta.key_field: vertex.data()[self.Meta.key_field]}
                 friends.append(FacebookGraphUser(vertex, user_model.objects.get(**query_dict)))
         return friends
+
+    def friends_of_friends(self):
+        level_1 = []
+        level_2 = []
+        vertices = self._vertex.outV('friends')
+        if vertices:
+            for vertex in vertices:
+                query_dict = {self.Meta.key_field: vertex.data()[self.Meta.key_field]}
+                level_1.append(FacebookGraphUser(vertex, user_model.objects.get(**query_dict)))
+                layer_2 = vertex.outV('friends')
+                if layer_2:
+                    for vertex_2 in layer_2:
+                        if vertex_2 != self._vertex:
+                            query_dict = {self.Meta.key_field: vertex_2.data()[self.Meta.key_field]}
+                            level_2.append(FacebookGraphUser(vertex_2, user_model.objects.get(**query_dict)))
+        return {1: level_1, 2: level_2}
 
     def get_friends_with_relation(self, instance, relation):
         friends = []
@@ -115,6 +137,15 @@ class FacebookGraphUser(BaseMapper):
                     query_dict = {self.Meta.key_field: vertex.data()[self.Meta.key_field]}
                     friends.append(FacebookGraphUser(vertex, user_model.objects.get(**query_dict)))
         return friends
+
+    def fof_with_relation(self, instance, relation):
+        level_1 = self.get_friends_with_relation(instance, relation)
+        level_2 = []
+        for friend in level_1:
+            level_2.extend(friend.get_friends_with_relation(instance, relation))
+        while self in level_2:
+            level_2.remove(self)
+        return {1: level_1, 2: level_2}
 
 class Product(models.Model):
     name = models.CharField(max_length=100)
