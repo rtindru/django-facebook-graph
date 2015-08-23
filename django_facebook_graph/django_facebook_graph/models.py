@@ -69,6 +69,9 @@ class BaseMapper(object):
 class FacebookGraphUser(BaseMapper):
     _graph = SocialGraph().g
 
+    def __unicode__(self):
+        return '{} - {}'.format(self.instance, self._vertex)
+
     class Meta:
         key_field = 'uid'
         data_fields = ['pk']
@@ -76,23 +79,23 @@ class FacebookGraphUser(BaseMapper):
     def is_friend(self, user):
         return self.has_relation(user, 'friends')
 
-    def has_relation(self, user, relation):
-        edges = self._vertex.outE(relation)
+    def has_relation(self, node, relation):
+        edges = self._vertex.bothE(relation)
         if edges:
             for edge in edges:
-                if user._vertex == edge.inV():
+                if node._vertex == edge.inV():
                     return edge
-        return False
+        return None
 
     def relate(self, node, relation, bi_directed=False, **attrs):
         if not FacebookGraphUser._graph:
             FacebookGraphUser._graph = SocialGraph().g
         edge = self.has_relation(node, relation)
-        if not edge:
+        if edge is None:
             edge = FacebookGraphUser._graph.edges.create(self._vertex, relation, node._vertex)
         if bi_directed:
             edge_2 = node.has_relation(self, relation)
-            if not edge_2:
+            if edge_2 is None:
                 edge_2 = FacebookGraphUser._graph.edges.create(node._vertex, relation, self._vertex)
         for key, value in attrs.items():
             setattr(edge, key, value)
@@ -133,7 +136,7 @@ class FacebookGraphUser(BaseMapper):
         vertices = self._vertex.outV('friends')
         if vertices:
             for vertex in vertices:
-                if vertex.outV(relation.__name__.lower()):
+                if vertex.outV(relation):
                     query_dict = {self.Meta.key_field: vertex.data()[self.Meta.key_field]}
                     friends.append(FacebookGraphUser(vertex, user_model.objects.get(**query_dict)))
         return friends

@@ -36,7 +36,10 @@ class SocialGraph(object):
         graph = GraphAPI(access_token)
         friends = graph.get('me/friends/')
         for friend in friends['data']:
-            user = SocialGraph.user_model.objects.get(uid=friend['id'])
+            try:
+                user = SocialGraph.user_model.objects.get(uid=friend['id'])
+            except SocialGraph.user_model.DoesNotExist as e:
+                continue
             friend_node = FacebookGraphUser.get_or_create(user)
             self.add_friend(user_node, friend_node)
 

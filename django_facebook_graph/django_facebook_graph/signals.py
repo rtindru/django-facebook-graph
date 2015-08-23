@@ -25,6 +25,7 @@ def add_new_relation(sender, **kwargs):
     model_instance = kwargs['model_instance']
     user_node = FacebookGraphUser.get_or_create(social_user)
     product_node = BaseMapper.get_or_create(model_instance)
+    import pdb; pdb.set_trace()
     user_node.relate(product_node, relation)
 
 new_relation_event.connect(add_new_relation)
