@@ -1,4 +1,4 @@
-bulbs==0.3.29.post20150822
+-e git+https://github.com/espeed/bulbs/tarball/master
 decorator==4.0.2
 Django==1.8.4
 django-allauth==0.23.0
